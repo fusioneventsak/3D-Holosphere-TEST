@@ -17,6 +17,14 @@ const DEMO_PHOTOS = [
   'https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&h=400&fit=crop&crop=face',
   'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=400&h=400&fit=crop&crop=face',
   'https://images.unsplash.com/photo-1519648023493-d82b5f8d7b8a?w=400&h=400&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=400&h=400&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=400&h=400&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=400&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=400&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=400&h=400&fit=crop&crop=face',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=400&fit=crop&crop=face',
 ];
 
 interface PhotoProps {
@@ -56,16 +64,25 @@ const FloatingPhoto: React.FC<PhotoProps> = ({ position, rotation, imageUrl, ind
 
   return (
     <mesh ref={meshRef} position={position} rotation={rotation} castShadow receiveShadow>
-      <planeGeometry args={[1.2, 1.2]} />
-      <meshStandardMaterial 
-        map={texture} 
-        transparent
-        side={THREE.DoubleSide}
-      />
-      {/* Photo frame effect */}
-      <mesh position={[0, 0, -0.01]}>
-        <planeGeometry args={[1.3, 1.3]} />
-        <meshStandardMaterial color="#ffffff" />
+      {/* Photo frame effect - slightly larger and behind */}
+      <mesh position={[0, 0, -0.02]}>
+        <planeGeometry args={[1.4, 1.4]} />
+        <meshStandardMaterial 
+          color="#1a1a1a" 
+          metalness={0.1}
+          roughness={0.8}
+        />
+      </mesh>
+      {/* Main photo */}
+      <mesh position={[0, 0, 0]}>
+        <planeGeometry args={[1.2, 1.2]} />
+        <meshStandardMaterial 
+          map={texture} 
+          transparent
+          side={THREE.DoubleSide}
+          metalness={0.1}
+          roughness={0.7}
+        />
       </mesh>
     </mesh>
   );
@@ -75,13 +92,13 @@ const ParticleSystem: React.FC = () => {
   const pointsRef = useRef<THREE.Points>(null);
   
   const particles = useMemo(() => {
-    const count = 100;
+    const count = 150;
     const positions = new Float32Array(count * 3);
     
     for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 20;
-      positions[i * 3 + 1] = (Math.random() - 0.5) * 15;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+      positions[i * 3] = (Math.random() - 0.5) * 25;
+      positions[i * 3 + 1] = Math.random() * 15 + 2;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 15;
     }
     
     return positions;
@@ -91,7 +108,7 @@ const ParticleSystem: React.FC = () => {
     if (!pointsRef.current) return;
     
     const time = state.clock.getElapsedTime();
-    pointsRef.current.rotation.y = time * 0.05;
+    pointsRef.current.rotation.y = time * 0.03;
   });
 
   return (
@@ -106,13 +123,44 @@ const ParticleSystem: React.FC = () => {
       </bufferGeometry>
       <pointsMaterial
         color="#8b5cf6"
-        size={0.02}
+        size={0.015}
         transparent
-        opacity={0.6}
+        opacity={0.4}
         sizeAttenuation
       />
     </points>
   );
+};
+
+// Floor component with reflective material
+const Floor: React.FC = () => {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3, 0]} receiveShadow>
+      <planeGeometry args={[30, 30]} />
+      <meshStandardMaterial 
+        color="#0a0a0a"
+        metalness={0.8}
+        roughness={0.2}
+        envMapIntensity={0.5}
+      />
+    </mesh>
+  );
+};
+
+// Grid component
+const Grid: React.FC = () => {
+  const gridHelper = useMemo(() => {
+    const helper = new THREE.GridHelper(30, 30, '#8b5cf6', '#4c1d95');
+    helper.position.y = -2.99;
+    
+    const material = helper.material as THREE.LineBasicMaterial;
+    material.transparent = true;
+    material.opacity = 0.3;
+    
+    return helper;
+  }, []);
+
+  return <primitive object={gridHelper} />;
 };
 
 const CameraController: React.FC = () => {
@@ -136,18 +184,41 @@ const CameraController: React.FC = () => {
 };
 
 const Scene: React.FC = () => {
-  // Generate photo positions in a spiral/wave pattern
+  // Generate photo positions in multiple layers and patterns
   const photoPositions = useMemo(() => {
     return DEMO_PHOTOS.map((photo, index) => {
-      const angle = (index / DEMO_PHOTOS.length) * Math.PI * 4;
-      const radius = 3 + Math.sin(index * 0.5) * 1.5;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      const y = Math.sin(index * 0.8) * 2;
+      // Create multiple layers and patterns
+      const layer = Math.floor(index / 8);
+      const indexInLayer = index % 8;
       
-      const rotationX = (Math.random() - 0.5) * 0.3;
-      const rotationY = (Math.random() - 0.5) * 0.5;
-      const rotationZ = (Math.random() - 0.5) * 0.2;
+      let x, y, z;
+      
+      if (layer === 0) {
+        // Inner circle
+        const angle = (indexInLayer / 8) * Math.PI * 2;
+        const radius = 2.5;
+        x = Math.cos(angle) * radius;
+        z = Math.sin(angle) * radius;
+        y = Math.sin(index * 0.8) * 1.5;
+      } else if (layer === 1) {
+        // Outer circle
+        const angle = (indexInLayer / 8) * Math.PI * 2 + Math.PI / 8;
+        const radius = 4.5;
+        x = Math.cos(angle) * radius;
+        z = Math.sin(angle) * radius;
+        y = Math.sin(index * 0.6) * 2 + 1;
+      } else {
+        // Additional scattered photos
+        const angle = (index / DEMO_PHOTOS.length) * Math.PI * 6;
+        const radius = 3 + Math.sin(index * 0.5) * 2;
+        x = Math.cos(angle) * radius;
+        z = Math.sin(angle) * radius;
+        y = Math.sin(index * 0.4) * 2.5 + 0.5;
+      }
+      
+      const rotationX = (Math.random() - 0.5) * 0.4;
+      const rotationY = (Math.random() - 0.5) * 0.6;
+      const rotationZ = (Math.random() - 0.5) * 0.3;
       
       return {
         position: [x, y, z] as [number, number, number],
@@ -159,20 +230,58 @@ const Scene: React.FC = () => {
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.4} />
-      <directionalLight 
-        position={[10, 10, 5]} 
-        intensity={1}
+      {/* Background */}
+      <color attach="background" args={['#000000']} />
+      
+      {/* Lighting Setup */}
+      <ambientLight intensity={0.15} color="#1a0a2e" />
+      
+      {/* Main spotlight from above */}
+      <spotLight
+        position={[0, 12, 0]}
+        angle={Math.PI / 3}
+        penumbra={0.5}
+        intensity={3}
+        color="#ffffff"
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
+        shadow-camera-near={1}
+        shadow-camera-far={20}
+        target-position={[0, 0, 0]}
       />
-      <pointLight position={[0, 5, 0]} intensity={0.5} color="#8b5cf6" />
-      <pointLight position={[-5, 2, -5]} intensity={0.3} color="#3b82f6" />
+      
+      {/* Purple accent lights */}
+      <spotLight
+        position={[-8, 8, -8]}
+        angle={Math.PI / 4}
+        penumbra={0.8}
+        intensity={2}
+        color="#8b5cf6"
+        castShadow
+      />
+      
+      <spotLight
+        position={[8, 6, 8]}
+        angle={Math.PI / 5}
+        penumbra={0.7}
+        intensity={1.5}
+        color="#a855f7"
+      />
+      
+      {/* Rim lighting */}
+      <directionalLight 
+        position={[10, 5, -10]} 
+        intensity={0.8}
+        color="#6366f1"
+      />
       
       {/* Camera Controller */}
       <CameraController />
+      
+      {/* Floor and Grid */}
+      <Floor />
+      <Grid />
       
       {/* Particle System */}
       <ParticleSystem />
@@ -187,6 +296,9 @@ const Scene: React.FC = () => {
           index={index}
         />
       ))}
+      
+      {/* Fog for depth */}
+      <fog attach="fog" args={['#0a0a0a', 8, 25]} />
     </>
   );
 };
@@ -204,12 +316,15 @@ const HeroScene: React.FC = () => {
   return (
     <div className="absolute inset-0 w-full h-full">
       <Canvas
-        camera={{ position: [8, 2, 8], fov: 60 }}
+        camera={{ position: [10, 4, 10], fov: 50 }}
         shadows
         gl={{ 
           antialias: true, 
           alpha: true,
-          powerPreference: "high-performance"
+          powerPreference: "high-performance",
+          shadowMap: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.2
         }}
         style={{ background: 'transparent' }}
       >
