@@ -36,16 +36,26 @@ interface PhotoProps {
 
 const FloatingPhoto: React.FC<PhotoProps> = ({ position, rotation, imageUrl, index }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const textureRef = useRef<THREE.Texture>();
+  const [texture, setTexture] = React.useState<THREE.Texture | null>(null);
+  const [isLoaded, setIsLoaded] = React.useState(false);
   
-  // Load texture
-  const texture = useMemo(() => {
+  // Load texture with error handling
+  React.useEffect(() => {
     const loader = new THREE.TextureLoader();
-    const tex = loader.load(imageUrl);
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    textureRef.current = tex;
-    return tex;
+    loader.load(
+      imageUrl,
+      (loadedTexture) => {
+        loadedTexture.minFilter = THREE.LinearFilter;
+        loadedTexture.magFilter = THREE.LinearFilter;
+        setTexture(loadedTexture);
+        setIsLoaded(true);
+      },
+      undefined,
+      (error) => {
+        console.warn('Failed to load texture:', imageUrl, error);
+        setIsLoaded(true); // Still show the frame even if image fails
+      }
+    );
   }, [imageUrl]);
 
   useFrame((state) => {
@@ -61,6 +71,10 @@ const FloatingPhoto: React.FC<PhotoProps> = ({ position, rotation, imageUrl, ind
     meshRef.current.rotation.z = rotation[2] + rotationOffset;
     meshRef.current.rotation.x = rotation[0] + Math.sin(time * 0.2 + index * 0.2) * 0.05;
   });
+
+  if (!isLoaded) {
+    return null; // Don't render until loaded or failed
+  }
 
   return (
     <mesh ref={meshRef} position={position} rotation={rotation} castShadow receiveShadow>
@@ -82,6 +96,7 @@ const FloatingPhoto: React.FC<PhotoProps> = ({ position, rotation, imageUrl, ind
           side={THREE.DoubleSide}
           metalness={0.1}
           roughness={0.7}
+          color={texture ? "#ffffff" : "#333333"}
         />
       </mesh>
     </mesh>
@@ -244,11 +259,9 @@ const Scene: React.FC = () => {
         intensity={3}
         color="#ffffff"
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize={[1024, 1024]}
         shadow-camera-near={1}
         shadow-camera-far={20}
-        target-position={[0, 0, 0]}
       />
       
       {/* Purple accent lights */}
@@ -259,6 +272,7 @@ const Scene: React.FC = () => {
         intensity={2}
         color="#8b5cf6"
         castShadow
+        shadow-mapSize={[512, 512]}
       />
       
       <spotLight
@@ -267,6 +281,7 @@ const Scene: React.FC = () => {
         penumbra={0.7}
         intensity={1.5}
         color="#a855f7"
+        shadow-mapSize={[512, 512]}
       />
       
       {/* Rim lighting */}
@@ -304,35 +319,61 @@ const Scene: React.FC = () => {
 };
 
 const LoadingFallback: React.FC = () => (
-  <div className="flex items-center justify-center h-full">
-    <div className="text-center">
-      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-      <p className="mt-2 text-sm text-gray-400">Loading 3D experience...</p>
-    </div>
-  </div>
+  <mesh>
+    <sphereGeometry args={[0.1, 8, 8]} />
+    <meshBasicMaterial color="#8b5cf6" />
+  </mesh>
 );
+
+const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [hasError, setHasError] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleError = () => setHasError(true);
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-black/40">
+        <div className="text-center text-white/60">
+          <div className="w-16 h-16 border-2 border-purple-500/30 rounded-full mx-auto mb-4"></div>
+          <p>3D Scene Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
 
 const HeroScene: React.FC = () => {
   return (
-    <div className="absolute inset-0 w-full h-full">
-      <Canvas
-        camera={{ position: [10, 4, 10], fov: 50 }}
-        shadows
-        gl={{ 
-          antialias: true, 
-          alpha: true,
-          powerPreference: "high-performance",
-          shadowMap: true,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.2
-        }}
-        style={{ background: 'transparent' }}
-      >
-        <Suspense fallback={null}>
-          <Scene />
-        </Suspense>
-      </Canvas>
-    </div>
+    <ErrorBoundary>
+      <div className="absolute inset-0 w-full h-full">
+        <Canvas
+          camera={{ position: [10, 4, 10], fov: 50 }}
+          shadows
+          gl={{ 
+            antialias: true, 
+            alpha: true,
+            powerPreference: "high-performance"
+          }}
+          style={{ background: 'transparent' }}
+          onCreated={({ gl }) => {
+            gl.shadowMap.enabled = true;
+            gl.shadowMap.type = THREE.PCFSoftShadowMap;
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.2;
+          }}
+        >
+          <Suspense fallback={<LoadingFallback />}>
+            <Scene />
+          </Suspense>
+        </Canvas>
+      </div>
+    </ErrorBoundary>
   );
 };
 
