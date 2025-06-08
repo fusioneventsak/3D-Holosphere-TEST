@@ -362,8 +362,8 @@ const PhotoMesh: React.FC<{
       const emptyTexture = new THREE.CanvasTexture(canvas);
       return new THREE.MeshStandardMaterial({
         map: emptyTexture,
-        transparent: true,
-        opacity: 0.3, // Fixed opacity for empty slots
+        transparent: false,
+        opacity: 1.0, // Fully opaque empty slots
         side: THREE.DoubleSide,
         color: 0xffffff, // Fixed white color for empty slots, not affected by brightness
       });
