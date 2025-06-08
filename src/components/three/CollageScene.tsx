@@ -328,12 +328,12 @@ const PhotoMesh: React.FC<{
         toneMapped: false,
       });
       
-      // Apply brightness by modifying the material color
+      // Apply brightness by modifying the material color - only for photos with textures
       brightnessMaterial.color.setScalar(brightness);
       
       return brightnessMaterial;
     } else {
-      // Empty slot material
+      // Empty slot material - NOT affected by brightness setting
       const canvas = document.createElement('canvas');
       canvas.width = 512;
       canvas.height = 512;
@@ -363,8 +363,9 @@ const PhotoMesh: React.FC<{
       return new THREE.MeshStandardMaterial({
         map: emptyTexture,
         transparent: true,
-        opacity: 0.3,
+        opacity: 0.3, // Fixed opacity for empty slots
         side: THREE.DoubleSide,
+        color: 0xffffff, // Fixed white color for empty slots, not affected by brightness
       });
     }
   }, [texture, emptySlotColor, pattern, brightness]);
