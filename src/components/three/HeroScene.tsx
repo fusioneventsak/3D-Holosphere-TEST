@@ -65,11 +65,15 @@ const FloatingPhoto: React.FC<PhotoProps> = ({ position, rotation, imageUrl, ind
     
     // Floating animation with different frequencies for each photo
     const floatOffset = Math.sin(time * 0.5 + index * 0.5) * 0.3;
-    const rotationOffset = Math.sin(time * 0.3 + index * 0.3) * 0.1;
+    
+    // Make photos face the camera
+    meshRef.current.lookAt(state.camera.position);
+    
+    // Add subtle rotation variation while still facing camera
+    const rotationOffset = Math.sin(time * 0.3 + index * 0.3) * 0.05;
+    meshRef.current.rotation.z += rotationOffset;
     
     meshRef.current.position.y = position[1] + floatOffset;
-    meshRef.current.rotation.z = rotation[2] + rotationOffset;
-    meshRef.current.rotation.x = rotation[0] + Math.sin(time * 0.2 + index * 0.2) * 0.05;
   });
 
   if (!isLoaded) {
@@ -147,30 +151,30 @@ const ParticleSystem: React.FC = () => {
   );
 };
 
-// Floor component with reflective material
+// Floor component with reflective material - lighter
 const Floor: React.FC = () => {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3, 0]} receiveShadow>
       <planeGeometry args={[30, 30]} />
       <meshStandardMaterial 
-        color="#0a0a0a"
-        metalness={0.8}
-        roughness={0.2}
-        envMapIntensity={0.5}
+        color="#1a1a2e"
+        metalness={0.7}
+        roughness={0.3}
+        envMapIntensity={0.8}
       />
     </mesh>
   );
 };
 
-// Grid component
+// Grid component - brighter
 const Grid: React.FC = () => {
   const gridHelper = useMemo(() => {
-    const helper = new THREE.GridHelper(30, 30, '#8b5cf6', '#4c1d95');
+    const helper = new THREE.GridHelper(30, 30, '#a855f7', '#6b46c1');
     helper.position.y = -2.99;
     
     const material = helper.material as THREE.LineBasicMaterial;
     material.transparent = true;
-    material.opacity = 0.3;
+    material.opacity = 0.6;
     
     return helper;
   }, []);
@@ -248,15 +252,15 @@ const Scene: React.FC = () => {
       {/* Background */}
       <color attach="background" args={['#000000']} />
       
-      {/* Lighting Setup */}
-      <ambientLight intensity={0.15} color="#1a0a2e" />
+      {/* Lighting Setup - Much Brighter */}
+      <ambientLight intensity={0.6} color="#4c1d95" />
       
-      {/* Main spotlight from above */}
+      {/* Main spotlight from above - Much brighter */}
       <spotLight
         position={[0, 12, 0]}
-        angle={Math.PI / 3}
-        penumbra={0.5}
-        intensity={3}
+        angle={Math.PI / 2.5}
+        penumbra={0.3}
+        intensity={8}
         color="#ffffff"
         castShadow
         shadow-mapSize={[1024, 1024]}
@@ -264,12 +268,25 @@ const Scene: React.FC = () => {
         shadow-camera-far={20}
       />
       
-      {/* Purple accent lights */}
+      {/* Additional fill lights for better illumination */}
+      <directionalLight 
+        position={[5, 8, 5]} 
+        intensity={3}
+        color="#ffffff"
+      />
+      
+      <directionalLight 
+        position={[-5, 6, -5]} 
+        intensity={2.5}
+        color="#f8fafc"
+      />
+      
+      {/* Purple accent lights - brighter */}
       <spotLight
         position={[-8, 8, -8]}
-        angle={Math.PI / 4}
-        penumbra={0.8}
-        intensity={2}
+        angle={Math.PI / 3}
+        penumbra={0.6}
+        intensity={4}
         color="#8b5cf6"
         castShadow
         shadow-mapSize={[512, 512]}
@@ -277,18 +294,20 @@ const Scene: React.FC = () => {
       
       <spotLight
         position={[8, 6, 8]}
-        angle={Math.PI / 5}
-        penumbra={0.7}
-        intensity={1.5}
+        angle={Math.PI / 4}
+        penumbra={0.5}
+        intensity={3.5}
         color="#a855f7"
         shadow-mapSize={[512, 512]}
       />
       
-      {/* Rim lighting */}
-      <directionalLight 
-        position={[10, 5, -10]} 
-        intensity={0.8}
-        color="#6366f1"
+      {/* Front fill light to illuminate photos */}
+      <pointLight 
+        position={[0, 3, 8]} 
+        intensity={4} 
+        color="#ffffff" 
+        distance={15}
+        decay={2}
       />
       
       {/* Camera Controller */}
@@ -312,8 +331,8 @@ const Scene: React.FC = () => {
         />
       ))}
       
-      {/* Fog for depth */}
-      <fog attach="fog" args={['#0a0a0a', 8, 25]} />
+      {/* Fog for depth - lighter */}
+      <fog attach="fog" args={['#1a1a2e', 12, 30]} />
     </>
   );
 };
@@ -365,7 +384,7 @@ const HeroScene: React.FC = () => {
             gl.shadowMap.enabled = true;
             gl.shadowMap.type = THREE.PCFSoftShadowMap;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
-            gl.toneMappingExposure = 1.2;
+            gl.toneMappingExposure = 1.8; // Increased exposure for brightness
           }}
         >
           <Suspense fallback={<LoadingFallback />}>
