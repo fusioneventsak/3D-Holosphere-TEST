@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import HeroScene from '../components/three/HeroScene';
+import DemoRequestModal from '../components/DemoRequestModal';
 import { ArrowRight, CameraIcon, CloudCog, Share2, ShieldCheck } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+
   return (
-    <Layout>
+    <Layout onRequestDemo={() => setIsDemoModalOpen(true)}>
       {/* Hero Section with WebGL Background */}
       <div className="relative overflow-hidden min-h-[100vh] flex items-center">
         {/* WebGL Scene Background */}
@@ -33,13 +36,13 @@ const LandingPage: React.FC = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
-              <Link
-                to="/dashboard"
+              <button
+                onClick={() => setIsDemoModalOpen(true)}
                 className="px-8 py-3 text-base font-medium rounded-md text-white bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 transition-colors flex items-center justify-center shadow-lg hover:shadow-purple-500/25"
               >
-                Create Collage
+                Request Demo
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
+              </button>
               <Link
                 to="/join"
                 className="px-8 py-3 text-base font-medium rounded-md text-white bg-black/50 backdrop-blur-sm border border-white/30 hover:bg-white/20 transition-colors flex items-center justify-center shadow-lg"
@@ -251,12 +254,12 @@ const LandingPage: React.FC = () => {
                   Try our platform for free and see why event planners choose PhotoSphere for their 3D photo experiences.
                 </p>
                 <div className="space-y-4">
-                  <Link
-                    to="/dashboard"
+                  <button
+                    onClick={() => setIsDemoModalOpen(true)}
                     className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 transition-colors shadow-lg hover:shadow-purple-500/25"
                   >
-                    Create Your First Collage
-                  </Link>
+                    Request Demo
+                  </button>
                   <p className="text-sm text-gray-500">No credit card required • Free to start</p>
                 </div>
               </div>
@@ -277,6 +280,12 @@ const LandingPage: React.FC = () => {
           </p>
         </div>
       </div>
+      
+      {/* Demo Request Modal */}
+      <DemoRequestModal 
+        isOpen={isDemoModalOpen} 
+        onClose={() => setIsDemoModalOpen(false)} 
+      />
     </Layout>
   );
 };
