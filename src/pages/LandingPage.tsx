@@ -2,12 +2,9 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import HeroScene from '../components/three/HeroScene';
-import DemoRequestModal from '../components/DemoRequestModal';
 import { ArrowRight, CameraIcon, CloudCog, Share2, ShieldCheck } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
-  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
-
   return (
     <Layout>
       {/* Hero Section with WebGL Background */}
@@ -36,13 +33,13 @@ const LandingPage: React.FC = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center lg:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
-              <button
-                onClick={() => setIsDemoModalOpen(true)}
+              <Link
+                to="/dashboard"
                 className="px-8 py-3 text-base font-medium rounded-md text-white bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 transition-colors flex items-center justify-center shadow-lg hover:shadow-purple-500/25"
               >
-                Request Demo
+                Create Collage
                 <ArrowRight className="ml-2 h-5 w-5" />
-              </button>
+              </Link>
               <Link
                 to="/join"
                 className="px-8 py-3 text-base font-medium rounded-md text-white bg-black/50 backdrop-blur-sm border border-white/30 hover:bg-white/20 transition-colors flex items-center justify-center shadow-lg"
@@ -280,12 +277,6 @@ const LandingPage: React.FC = () => {
           </p>
         </div>
       </div>
-
-      {/* Demo Request Modal */}
-      <DemoRequestModal 
-        isOpen={isDemoModalOpen} 
-        onClose={() => setIsDemoModalOpen(false)} 
-      />
     </Layout>
   );
 };
